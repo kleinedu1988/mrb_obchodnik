@@ -1,0 +1,82 @@
+component MenuButton inherits Rectangle {
+    in-out property<string> text;
+    in-out property<bool> active;
+    in property <color> active-color: #4aa3df;
+    callback clicked;
+
+    height: 45px;
+    background: active ? root.active-color : touch.has-hover ? #3d3d3d : #2e2e2e;
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: active ? root.active-color : #3f3f3f;
+
+    touch := TouchArea { clicked => { root.clicked(); } }
+
+    HorizontalLayout {
+        padding-left: 20px;
+        Text {
+            text: root.text;
+            color: root.active ? #1A1A1A : white;
+            vertical-alignment: center;
+            font-size: 14px;
+            font-weight: root.active ? 800 : 500;
+        }
+    }
+}
+
+export component Sidebar inherits Rectangle {
+    in property <color> akcent-barva: #4aa3df;
+    in property <string> verze-aplikace: "0.1.0";
+        
+    // 1. Změna na in-out, aby sidebar mohl měnit hodnotu interně
+    in-out property <int> aktivni-stranka: 0;
+    
+    // Callback, kterým sidebar oznámí do Rustu, že se změnila stránka
+    callback strana-zmenena(int);
+
+    width: 280px;
+    background: #212121;
+
+    VerticalLayout {
+        padding: 25px;
+        spacing: 10px;
+
+        Text {
+            text: "MRB Obchodník";
+            color: root.akcent-barva;
+            font-size: 20px;
+            font-weight: 900;
+            horizontal-alignment: center;
+        }
+
+        Rectangle { height: 20px; }
+
+        // 2. Přidání logiky kliknutí pro každé tlačítko
+        MenuButton {
+            text: "🏠   Rozcestník";
+            active: root.aktivni-stranka == 0;
+            clicked => { root.aktivni-stranka = 0; }
+        }
+
+        MenuButton {
+            text: "📂 Import dat";
+            active: root.aktivni-stranka == 1;
+            clicked => { root.aktivni-stranka = 1; }
+        }
+
+        MenuButton {
+            text: "⚙ Nastavení";
+            active: root.aktivni-stranka == 2;
+            clicked => { root.aktivni-stranka = 2; }
+        }
+    
+        Rectangle { vertical-stretch: 1; }
+
+        Text { 
+            text: "v" + root.verze-aplikace;
+            color: #555; 
+            font-size: 11px; 
+            horizontal-alignment: center; 
+        }
+    }
+}
