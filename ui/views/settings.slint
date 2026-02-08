@@ -1,18 +1,198 @@
-export component SettingsView inherits VerticalLayout {
-    padding: 40px;
-    alignment: center;
-    spacing: 20px;
+import { Button, LineEdit, CheckBox } from "std-widgets.slint";
 
-    Text {
-        text: "⚙ NASTAVENÍ";
-        color: white;
-        font-size: 32px;
-        font-weight: 800;
-        horizontal-alignment: center;
+// Pomocná komponenta pro karty statistik (v horní části správy partnerů)
+component FilterCard inherits Rectangle {
+    in property <string> label;
+    in property <string> count;
+    in property <color> count-color: white;
+    in property <bool> active: false;
+    in property <string> icon;
+    callback clicked();
+
+    background: #252525;
+    border-radius: 8px;
+    border-width: 2px;
+    border-color: active ? #2CC985 : #3d3d3d;
+    
+    animate border-color { duration: 150ms; }
+
+    TouchArea {
+        clicked => { root.clicked(); }
+        HorizontalLayout {
+            padding: 12px; spacing: 15px;
+            Text { text: root.icon; vertical-alignment: center; font-size: 22px; }
+            VerticalLayout {
+                alignment: center;
+                Text { text: root.label; color: #888; font-size: 11px; font-weight: 700; }
+                Text { text: root.count; color: root.count-color; font-size: 18px; font-weight: 800; }
+            }
+        }
     }
-    Text {
-        text: "Konfigurace cest k serveru a uživatelské preference.";
-        color: #888;
-        horizontal-alignment: center;
+}
+
+export component SettingsView inherits VerticalLayout {
+    // Vlastnosti pro komunikaci s hlavní aplikací
+    in property <int> db-status-code: 1;
+    in property <string> stav-text: "DATABÁZE NENÍ NAČTENA";
+    in property <int> pocet-celkem: 0;
+    in property <int> pocet-chybi: 0;
+
+    // Vnitřní stav pro přepínání pod-záložek
+    property <int> settings-tab: 0;
+
+    // Hlavní odsazení stránky, aby obsah nelícoval s okraji okna
+    padding: 25px;
+    spacing: 25px;
+
+    // --- 1. HORNÍ PŘEPÍNAČ (TABS) ---
+    HorizontalLayout {
+        height: 45px; 
+        spacing: 12px; 
+        vertical-stretch: 0;
+        
+        Button { 
+            text: "Aktualizace dat"; 
+            primary: settings-tab == 0; 
+            clicked => { settings-tab = 0; } 
+        }
+        Button { 
+            text: "Databáze partnerů"; 
+            primary: settings-tab == 1; 
+            clicked => { settings-tab = 1; } 
+        }
+        Button { 
+            text: "Obecné nastavení"; 
+            primary: settings-tab == 2; 
+            clicked => { settings-tab = 2; } 
+        }
+    }
+
+    // --- 2. DYNAMICKÝ OBSAH PODLE VYBRANÉ ZÁLOŽKY ---
+    Rectangle {
+        vertical-stretch: 1;
+        
+        // --- ZÁLOŽKA: AKTUALIZACE (Index 0) ---
+        if (settings-tab == 0) : VerticalLayout {
+            spacing: 30px;
+            alignment: center;
+
+            Text { 
+                text: "Stav databáze obchodních partnerů"; 
+                color: white; 
+                font-size: 20px; 
+                font-weight: 700; 
+                horizontal-alignment: center; 
+            }
+
+            Rectangle {
+                height: 120px;
+                max-width: 600px;
+                background: root.db-status-code == 0 ? #2CC98515 : (root.db-status-code == 2 ? #f39c1215 : #e74c3c15);
+                border-color: root.db-status-code == 0 ? #2CC985 : (root.db-status-code == 2 ? #f39c12 : #e74c3c);
+                border-width: 2px;
+                border-radius: 12px;
+
+                Text {
+                    text: root.stav-text;
+                    color: parent.border-color;
+                    font-size: 22px;
+                    font-weight: 900;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+
+            Button { 
+                text: "SYNCHRONIZOVAT NYNÍ"; 
+                height: 55px; 
+                max-width: 350px; 
+            }
+        }
+
+        // --- ZÁLOŽKA: PARTNEŘI (Index 1) ---
+        if (settings-tab == 1) : VerticalLayout {
+            spacing: 20px;
+
+            // Vyhledávání a rychlé náhledy
+            HorizontalLayout {
+                height: 80px;
+                spacing: 20px;
+                
+                FilterCard { 
+                    icon: "👥"; label: "CELKEM V DB"; count: "\{root.pocet-celkem}"; 
+                }
+                FilterCard { 
+                    icon: "⚠️"; label: "BEZ SLOŽKY"; count: "\{root.pocet-chybi}"; count-color: #ff4444; 
+                }
+                
+                // Vyhledávací lišta - OPRAVENO ZAROVNÁNÍ
+                Rectangle {
+                    horizontal-stretch: 1;
+                    background: #252525;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: #444;
+                    
+                    HorizontalLayout {
+                        padding-left: 15px; 
+                        spacing: 12px;
+                        alignment: center; // Vertikálně vycentruje ikonu i LineEdit
+
+                        Text { text: "🔍"; color: #666; font-size: 18px; }
+                        
+                        LineEdit { 
+                            placeholder-text: "Hledat partnera podle názvu nebo ID..."; 
+                            horizontal-stretch: 1;
+                            // vertical-alignment odstraněn (LineEdit jej nepodporuje)
+                        }
+                    }
+                }
+            }
+
+            // Záhlaví seznamu
+            Rectangle {
+                height: 40px;
+                background: #2a2a2a;
+                border-radius: 6px;
+                HorizontalLayout {
+                    padding-left: 20px; padding-right: 20px;
+                    Text { text: "STAV"; width: 80px; color: #666; font-size: 11px; font-weight: 800; vertical-alignment: center; }
+                    Text { text: "ID"; width: 100px; color: #666; font-size: 11px; font-weight: 800; vertical-alignment: center; }
+                    Text { text: "NÁZEV FIRMY"; color: #666; font-size: 11px; font-weight: 800; vertical-alignment: center; }
+                }
+            }
+
+            // Placeholder pro tabulku
+            Rectangle {
+                background: #1e1e1e;
+                border-radius: 8px;
+                vertical-stretch: 1;
+                Text { text: "Seznam partnerů bude načten z databáze..."; color: #444; horizontal-alignment: center; vertical-alignment: center; }
+            }
+        }
+
+        // --- ZÁLOŽKA: OBECNÉ (Index 2) ---
+        if (settings-tab == 2) : VerticalLayout {
+            spacing: 25px;
+            padding: 10px;
+
+            Text { text: "Systémová nastavení"; color: white; font-size: 18px; font-weight: 700; }
+            
+            CheckBox { text: "Povolit automatickou aktualizaci při spuštění"; checked: true; }
+            CheckBox { text: "Ukládat historii importů do logu"; checked: true; }
+
+            Rectangle { height: 1px; background: #333; }
+
+            Text { text: "Konfigurace cest (Server / Archiv)"; color: #888; font-size: 13px; }
+            
+            HorizontalLayout {
+                spacing: 10px;
+                alignment: center;
+                LineEdit { placeholder-text: "Zadejte cestu k archivu..."; horizontal-stretch: 1; }
+                Button { text: "Změnit"; width: 100px; }
+            }
+
+            Rectangle { vertical-stretch: 1; }
+        }
     }
 }

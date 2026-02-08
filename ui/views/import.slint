@@ -1,18 +1,191 @@
+import { Button, LineEdit, CheckBox, ScrollView } from "std-widgets.slint";
+
+// --- POMOCNÉ KOMPONENTY PRO TUTO STRÁNKU ---
+
+component FormLabel inherits Text {
+    color: #aaa;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+component FileItem inherits Rectangle {
+    in property <string> nazev;
+    height: 40px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: #333;
+
+    HorizontalLayout {
+        padding-left: 12px; padding-right: 8px; spacing: 10px;
+        Text { text: "📎"; vertical-alignment: center; font-size: 14px; color: #666; }
+        Text {
+            text: root.nazev;
+            color: #ccc; font-size: 13px; vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+        Text {
+            text: "×";
+            color: #cc4444;
+            font-size: 22px;
+            vertical-alignment: center;
+        }
+    }
+}
+
+component DropZone inherits Rectangle {
+    in property <color> active-color;
+    in property <string> ikona: "☁️";
+    in property <string> hlavni-text: "Nahrát soubor";
+    in property <string> vedlejsi-text: "Klikněte pro výběr";
+
+    background: #252525;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: #444;
+
+    VerticalLayout {
+        alignment: center; spacing: 8px;
+        Text { text: root.ikona; font-size: 32px; horizontal-alignment: center; }
+        Text {
+            text: root.hlavni-text;
+            font-size: 16px; color: #eee; horizontal-alignment: center; font-weight: 700;
+        }
+        Text {
+            text: root.vedlejsi-text;
+            font-size: 11px; color: #666; horizontal-alignment: center;
+        }
+    }
+}
+
+// --- HLAVNÍ KOMPONENTA STRÁNKY ---
+
 export component ImportView inherits VerticalLayout {
-    padding: 40px;
-    alignment: center;
+    // Vizuální vlastnosti (lze měnit zvenčí)
+    in property <color> akcent-barva: #4aa3df;
+    in property <string> nazev-rezimu: "IMPORT";
+    
     spacing: 20px;
 
-    Text {
-        text: "📂 IMPORT DAT";
-        color: #4aa3df;
-        font-size: 32px;
-        font-weight: 800;
-        horizontal-alignment: center;
+    // 1. Hlavička okna
+    HorizontalLayout {
+        spacing: 15px; vertical-stretch: 0;
+        Rectangle { width: 6px; background: root.akcent-barva; border-radius: 3px; }
+        VerticalLayout {
+            Text { text: "ZALOŽENÍ DOKLADU: " + root.nazev-rezimu; color: root.akcent-barva; font-weight: 800; font-size: 12px; }
+            Text { text: root.nazev-rezimu == "IMPORT" ? "Nové zpracování dat" : "Nový doklad"; color: white; font-size: 24px; font-weight: 300; }
+        }
+        Rectangle { horizontal-stretch: 1; }
+        Button { text: "Zpět na rozcestník"; height: 35px; }
     }
-    Text {
-        text: "Zde bude probíhat zpracování DXF a PDF souborů.";
-        color: #888;
-        horizontal-alignment: center;
+
+    Rectangle { height: 1px; background: #333; }
+
+    // 2. Hlavní obsah - dvousloupcový
+    HorizontalLayout {
+        spacing: 40px;
+        vertical-stretch: 1;
+
+        // LEVÝ SLOUPEC: RUČNÍ FORMULÁŘ
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: 15px;
+            alignment: start;
+
+            Text { text: "📝   Ruční zadání údajů"; font-size: 18px; font-weight: 700; color: white; }
+
+            VerticalLayout {
+                spacing: 5px;
+                FormLabel { text: "IČO / ID PARTNERA"; }
+                HorizontalLayout {
+                    spacing: 10px;
+                    LineEdit { placeholder-text: "Např. 12345678"; height: 40px; horizontal-stretch: 1; }
+                    Button { text: "Ověřit"; width: 80px; }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 5px;
+                FormLabel { text: "NÁZEV FIRMY / PARTNERA"; }
+                LineEdit { placeholder-text: "Název firmy..."; height: 40px; }
+            }
+
+            VerticalLayout {
+                spacing: 5px;
+                FormLabel { text: "POZNÁMKA K ZAKÁZCE"; }
+                LineEdit { placeholder-text: "Interní poznámka..."; height: 40px; }
+            }
+
+            CheckBox { text: "Vytvořit složku v archivu"; checked: true; }
+
+            Rectangle { vertical-stretch: 1; }
+
+            Button {
+                text: "VYTVOŘIT " + root.nazev-rezimu;
+                height: 50px;
+                primary: true;
+            }
+        }
+
+        // Oddělovací čára
+        Rectangle { width: 1px; background: #333; }
+
+        // PRAVÝ SLOUPEC: IMPORT SOUBORŮ
+        VerticalLayout {
+            width: 360px;
+            spacing: 20px;
+
+            // Excel sekce
+            VerticalLayout {
+                spacing: 10px;
+                Text { text: "1. Řídící soubor (Excel)"; font-size: 14px; font-weight: 700; color: #888; }
+                DropZone {
+                    height: 120px;
+                    active-color: root.akcent-barva;
+                    ikona: "📊";
+                    hlavni-text: "Nahrát Excel";
+                    vedlejsi-text: ".xlsx, .xlsm (Transformátorek)";
+                }
+            }
+
+            Rectangle { height: 1px; background: #333; }
+
+            // Přílohy sekce
+            VerticalLayout {
+                spacing: 10px;
+                vertical-stretch: 1;
+
+                Text { text: "2. Datové přílohy (Výkresy, Modely)"; font-size: 14px; font-weight: 700; color: #888; }
+
+                DropZone {
+                    height: 100px;
+                    active-color: #4aa3df;
+                    ikona: "📂";
+                    hlavni-text: "Přidat výkresy";
+                    vedlejsi-text: "PDF, STEP, DXF...";
+                }
+
+                // Seznam nahraných souborů
+                Rectangle {
+                    background: #1e1e1e;
+                    border-radius: 6px;
+                    border-width: 1px;
+                    border-color: #333;
+                    vertical-stretch: 1;
+                    
+                    ScrollView {
+                        padding: 10px;
+                        VerticalLayout {
+                            spacing: 6px;
+                            alignment: start;
+                            // Ukázka souborů (bez logiky)
+                            FileItem { nazev: "vykres_hridele_v1.dxf"; }
+                            FileItem { nazev: "sestava_final.step"; }
+                            FileItem { nazev: "zadání_od_klienta.pdf"; }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

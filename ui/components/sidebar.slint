@@ -26,7 +26,7 @@ component MenuButton inherits Rectangle {
 
 export component Sidebar inherits Rectangle {
     in property <color> akcent-barva: #4aa3df;
-    in property <string> verze-aplikace: "0.1.0";
+    in property <string> verze-aplikace: "0.1.1";
         
     // 1. Změna na in-out, aby sidebar mohl měnit hodnotu interně
     in-out property <int> aktivni-stranka: 0;
@@ -53,7 +53,7 @@ export component Sidebar inherits Rectangle {
 
         // 2. Přidání logiky kliknutí pro každé tlačítko
         MenuButton {
-            text: "🏠   Rozcestník";
+            text: "🏠   Vytvořit";
             active: root.aktivni-stranka == 0;
             clicked => { root.aktivni-stranka = 0; }
         }

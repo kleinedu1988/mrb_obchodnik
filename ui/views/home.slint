@@ -1,18 +1,94 @@
-export component HomeView inherits VerticalLayout {
-    padding: 40px;
-    alignment: center;
-    spacing: 20px;
+// Definice grafické karty (tlačítka), kterou budeme používat pro volby
+component HubCard inherits Rectangle {
+    in property <string> title;
+    in property <string> icon;
+    in property <string> description;
+    in property <color> base-color;
+    callback clicked();
 
-    Text {
-        text: "🏠 ROZCESTNÍK";
-        color: white;
-        font-size: 32px;
-        font-weight: 800;
-        horizontal-alignment: center;
+    width: 320px; 
+    height: 200px;
+    background: touch.pressed ? #333 : #252525;
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: touch.has-hover ? root.base-color : #3d3d3d;
+
+    animate border-color { duration: 200ms; }
+    animate background { duration: 100ms; }
+
+    touch := TouchArea { clicked => { root.clicked(); } mouse-cursor: pointer; }
+
+    VerticalLayout {
+        padding: 30px; spacing: 15px; alignment: center;
+        Text { text: root.icon; font-size: 36px; horizontal-alignment: center; }
+        Text {
+            text: root.title;
+            font-size: 20px;
+            font-weight: 800;
+            color: touch.has-hover ? root.base-color : white;
+            horizontal-alignment: center;
+            animate color { duration: 200ms; }
+        }
+        Text {
+            text: root.description;
+            font-size: 13px;
+            color: #888;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+        }
     }
-    Text {
-        text: "Vítejte v systému. Vyberte akci v levém menu.";
-        color: #888;
-        horizontal-alignment: center;
+}
+
+export component HomeView inherits Rectangle {
+    background: #1a1a1a;
+    
+    // Callbacky, které oznámí hlavnímu oknu, co uživatel vybral
+    callback nabidka-vybrana();
+    callback objednavka-vybrana();
+
+    VerticalLayout {
+        padding: 40px;
+        alignment: center;
+        spacing: 40px;
+
+        // Nadpisová část
+        VerticalLayout {
+            spacing: 10px;
+            Text { 
+                text: "Co chcete zpracovat?"; 
+                font-size: 32px; 
+                font-weight: 300; 
+                color: white; 
+                horizontal-alignment: center; 
+            }
+            Text { 
+                text: "Vyberte typ procesu pro zahájení práce"; 
+                font-size: 16px; 
+                color: #888; 
+                horizontal-alignment: center; 
+            }
+        }
+
+        // --- TLAČÍTKA (KARTY) ---
+        HorizontalLayout {
+            alignment: center; 
+            spacing: 16px;
+
+            HubCard {
+                title: "POPTÁVKA / NABÍDKA";
+                description: "Založit novou nabídku.\nRučně nebo importem z Excelu.";
+                icon: "📄";
+                base-color: #f39c12; // Oranžová
+                clicked => { root.nabidka-vybrana(); }
+            }
+
+            HubCard {
+                title: "OBJEDNÁVKA";
+                description: "Zpracování objednávky do výroby.\nKontrola dat a převod souborů.";
+                icon: "📦";
+                base-color: #27ae60; // Zelená
+                clicked => { root.objednavka-vybrana(); }
+            }
+        }
     }
 }

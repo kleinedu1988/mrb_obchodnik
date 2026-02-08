@@ -1,39 +1,68 @@
 import { Sidebar } from "components/sidebar.slint";
-
 import { HomeView } from "views/home.slint";
 import { ImportView } from "views/import.slint";
 import { SettingsView } from "views/settings.slint";
 
 export component AppWindow inherits Window {
-    title: "MRB Obchodník - Nový Projekt";
+    title: "MRB Obchodník";
+    
+    preferred-width: 1300px;
+    preferred-height: 850px;
     min-width: 1100px;
     min-height: 750px;
-    background: #1A1A1A; // Původní barva pozadí okna
+    background: #1A1A1A;
 
+    in property <string> verze_aplikace: "0.1.0";
     in-out property <int> vybrany_index: 0;
     
+    property <int> rezim_prace: 0; // 0=Import, 1=Poptávka, 2=Objednávka
+    property <color> barva_stranky: rezim_prace == 1 ? #f39c12 : (rezim_prace == 2 ? #27ae60 : #4aa3df);
+    property <string> titulek_stranky: rezim_prace == 1 ? "POPTÁVKA" : (rezim_prace == 2 ? "OBJEDNÁVKA" : "IMPORT");
+
+    in property <int> db_status_code: 1;
+    in property <string> stav_text: "DATABÁZE NENÍ NAČTENA";
+    in property <int> pocet_celkem: 0;
+    in property <int> pocet_chybi: 0;
 
     HorizontalLayout {
         padding: 0;
         spacing: 0;
 
-        // Volání našeho samostatného komponentu
         Sidebar {
-            akcent-barva: #4aa3df;
-            verze-aplikace: "0.5.0";
-            aktivni-stranka <=> root.vybrany_index;        
+            aktivni-stranka <=> root.vybrany_index;
+            akcent-barva: root.barva_stranky;
+            verze-aplikace: root.verze_aplikace;
         }
 
-        // Hlavní pracovní plocha (zatím prázdná)
-        VerticalLayout {
-            Rectangle {
+        HorizontalLayout {
             horizontal-stretch: 1;
-            background: #1a1a1a;
+            padding: 20px;
 
-            // Slint automaticky zobrazí pouze ten komponent, jehož podmínka platí
-            if (root.vybrany_index == 0) : HomeView {}
-            if (root.vybrany_index == 1) : ImportView {}
-            if (root.vybrany_index == 2) : SettingsView {}
+
+            // 0. ROZCESTNÍK
+            if (root.vybrany_index == 0) : HomeView {
+                nabidka-vybrana => { 
+                    root.rezim_prace = 1; 
+                    root.vybrany_index = 1; 
+                }
+                objednavka-vybrana => { 
+                    root.rezim_prace = 2; 
+                    root.vybrany_index = 1; 
+                }
+            }
+            
+            // 1. IMPORT / DETAIL PRÁCE
+            if (root.vybrany_index == 1) : ImportView {
+                akcent-barva: root.barva_stranky;
+                nazev-rezimu: root.titulek_stranky;
+            }
+
+            // 2. NASTAVENÍ (Tady byl kód useknutý)
+            if (root.vybrany_index == 2) : SettingsView {
+                db-status-code: root.db_status_code;
+                stav-text: root.stav_text;
+                pocet-celkem: root.pocet_celkem;
+                pocet-chybi: root.pocet_chybi;
             }
         }
     }
