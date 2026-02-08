@@ -1,198 +1,343 @@
-import { Button, LineEdit, CheckBox } from "std-widgets.slint";
+import { Button, LineEdit, CheckBox, VerticalBox, HorizontalBox, ComboBox } from "std-widgets.slint";
 
-// Pomocná komponenta pro karty statistik (v horní části správy partnerů)
+// --- KOMPONENTY ---
+
+// Definice ProgressBaru podle vašeho návrhu
+export component ProgressBar inherits Rectangle {
+    in property <float> progress: 0.0; 
+    in property <string> status_text: "Pracuji...";
+    
+    height: 100px;
+    width: 400px;
+    background: #252525;
+    border-radius: 12px;
+    border-width: 2px;
+    border-color: #3d3d3d;
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 12px;
+        alignment: center;
+
+        HorizontalLayout {
+            Text {
+                text: root.status_text;
+                color: white;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Text {
+                text: "\{round(root.progress * 100)}%";
+                color: #888;
+                font-size: 14px;
+            }
+        }
+
+        Rectangle {
+            height: 12px;
+            background: #1a1a1a;
+            border-radius: 6px;
+            clip: true;
+
+            Rectangle {
+                x: 0;
+                width: parent.width * root.progress;
+                height: parent.height;
+                background: #4aa3df;
+                border-radius: 6px;
+                animate width { duration: 250ms; easing: ease-out; }
+            }
+        }
+    }
+}
+
+component StatusCard inherits Rectangle {
+    in property <string> title;
+    in property <string> symbol; 
+    in property <string> description;
+    in property <color> base-color;
+    in property <bool> active: false;
+    
+    callback clicked();
+
+    width: 600px; 
+    height: 180px;
+    background: touch.has-hover ? #2e2e2e : #252525;
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: active ? white : (touch.has-hover ? root.base-color.brighter(20%) : root.base-color.darker(30%));
+
+    animate background { duration: 150ms; }
+    animate border-color { duration: 100ms; }
+
+    touch := TouchArea {
+        mouse-cursor: pointer; 
+        clicked => { root.clicked(); }
+    }
+
+    HorizontalLayout {
+        padding: 30px;
+        spacing: 30px;
+
+        Rectangle {
+            width: 100px;
+            Text { 
+                text: root.symbol; 
+                font-size: 80px;
+                font-weight: 900;
+                color: root.base-color;
+                vertical-alignment: center; 
+                horizontal-alignment: center;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 8px;
+            Text {
+                text: root.title; 
+                font-size: 24px; 
+                font-weight: 800; 
+                color: white;
+            }
+            Text {
+                text: root.description; 
+                font-size: 14px; 
+                color: #888;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
+
 component FilterCard inherits Rectangle {
     in property <string> label;
     in property <string> count;
     in property <color> count-color: white;
     in property <bool> active: false;
     in property <string> icon;
+    
     callback clicked();
 
-    background: #252525;
-    border-radius: 8px;
+    background: touch.has-hover ? #2e2e2e : #252525; 
+    border-radius: 12px; 
     border-width: 2px;
-    border-color: active ? #2CC985 : #3d3d3d;
+    border-color: active ? #2CC985 : (touch.has-hover ? #4d4d4d : #3d3d3d);
     
     animate border-color { duration: 150ms; }
+    animate background { duration: 150ms; }
 
-    TouchArea {
+    touch := TouchArea {
         clicked => { root.clicked(); }
-        HorizontalLayout {
-            padding: 12px; spacing: 15px;
-            Text { text: root.icon; vertical-alignment: center; font-size: 22px; }
-            VerticalLayout {
-                alignment: center;
-                Text { text: root.label; color: #888; font-size: 11px; font-weight: 700; }
-                Text { text: root.count; color: root.count-color; font-size: 18px; font-weight: 800; }
+    }
+
+    HorizontalLayout {
+        padding: 16px; 
+        spacing: 15px;
+        Text { 
+            text: root.icon; 
+            vertical-alignment: center; 
+            font-size: 24px; 
+        }
+        VerticalLayout {
+            alignment: center;
+            Text { 
+                text: root.label; 
+                color: #888; 
+                font-size: 11px; 
+                font-weight: 700; 
+            }
+            Text { 
+                text: root.count; 
+                color: root.count-color; 
+                font-size: 18px; 
+                font-weight: 800; 
             }
         }
     }
 }
 
-export component SettingsView inherits VerticalLayout {
-    // Vlastnosti pro komunikaci s hlavní aplikací
-    in property <int> db-status-code: 1;
+component ImportDialog inherits Rectangle {
+    in property <string> excel-path;
+    in property <[string]> sheets;
+    in-out property <string> selected-sheet;
+    
+    callback start-import();
+    callback cancel();
+
+    width: 600px;
+    background: #252525;
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: #3d3d3d;
+
+    VerticalLayout {
+        padding: 30px;
+        spacing: 20px;
+
+        Text {
+            text: "Příprava importu";
+            font-size: 22px;
+            font-weight: 800;
+            color: white;
+        }
+
+        VerticalLayout {
+            spacing: 5px;
+            Text { text: "Vybraný soubor:"; color: #888; font-size: 12px; }
+            Rectangle {
+                background: #1a1a1a;
+                border-radius: 8px;
+                height: 40px;
+                HorizontalLayout {
+                    padding-left: 15px; padding-right: 15px;
+                    Text { 
+                        text: root.excel-path; 
+                        vertical-alignment: center; 
+                        color: #4aa3df;
+                        font-family: "monospace";
+                        overflow: elide;
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            spacing: 5px;
+            Text { text: "Vyberte list (Sheet):"; color: #888; font-size: 12px; }
+            ComboBox {
+                model: root.sheets;
+                current-value <=> root.selected-sheet;
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 15px;
+            alignment: end;
+            Button {
+                text: "Zrušit";
+                clicked => { root.cancel(); }
+            }
+            Button {
+                text: "Spustit import dat";
+                primary: true;
+                enabled: root.excel-path != "" && root.selected-sheet != "";
+                clicked => { root.start-import(); }
+            }
+        }
+    }
+}
+
+// --- HLAVNÍ KOMPONENTA NASTAVENÍ ---
+
+export component SettingsView inherits Rectangle { 
+    // API pro main.slint
+    in property <int> db-status-code: 1; 
     in property <string> stav-text: "DATABÁZE NENÍ NAČTENA";
+    in property <string> posledni-sync: "Neznámý";
     in property <int> pocet-celkem: 0;
     in property <int> pocet-chybi: 0;
 
-    // Vnitřní stav pro přepínání pod-záložek
+    // Progress a Import flow
+    in property <string> excel-path: "";
+    in property <[string]> available-sheets: ["List1", "Export"];
+    in-out property <string> selected-sheet: "";
+    
+    in property <bool> show-progress: false;
+    in property <float> progress-value: 0.0;
+    in property <string> progress-label: "Probíhá import dat...";
+
+    // Callbacks
+    callback vybrat-soubor-databaze();
+    callback spustit-import(string, string);
+    callback reset-import-status();
+
     property <int> settings-tab: 0;
 
-    // Hlavní odsazení stránky, aby obsah nelícoval s okraji okna
-    padding: 25px;
-    spacing: 25px;
+    background: #1a1a1a;
 
-    // --- 1. HORNÍ PŘEPÍNAČ (TABS) ---
-    HorizontalLayout {
-        height: 45px; 
-        spacing: 12px; 
-        vertical-stretch: 0;
-        
-        Button { 
-            text: "Aktualizace dat"; 
-            primary: settings-tab == 0; 
-            clicked => { settings-tab = 0; } 
-        }
-        Button { 
-            text: "Databáze partnerů"; 
-            primary: settings-tab == 1; 
-            clicked => { settings-tab = 1; } 
-        }
-        Button { 
-            text: "Obecné nastavení"; 
-            primary: settings-tab == 2; 
-            clicked => { settings-tab = 2; } 
-        }
-    }
+    VerticalLayout {
+        padding: 25px;
+        spacing: 25px;
 
-    // --- 2. DYNAMICKÝ OBSAH PODLE VYBRANÉ ZÁLOŽKY ---
-    Rectangle {
-        vertical-stretch: 1;
-        
-        // --- ZÁLOŽKA: AKTUALIZACE (Index 0) ---
-        if (settings-tab == 0) : VerticalLayout {
-            spacing: 30px;
-            alignment: center;
-
-            Text { 
-                text: "Stav databáze obchodních partnerů"; 
-                color: white; 
-                font-size: 20px; 
-                font-weight: 700; 
-                horizontal-alignment: center; 
-            }
-
-            Rectangle {
-                height: 120px;
-                max-width: 600px;
-                background: root.db-status-code == 0 ? #2CC98515 : (root.db-status-code == 2 ? #f39c1215 : #e74c3c15);
-                border-color: root.db-status-code == 0 ? #2CC985 : (root.db-status-code == 2 ? #f39c12 : #e74c3c);
-                border-width: 2px;
-                border-radius: 12px;
-
-                Text {
-                    text: root.stav-text;
-                    color: parent.border-color;
-                    font-size: 22px;
-                    font-weight: 900;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-            }
-
-            Button { 
-                text: "SYNCHRONIZOVAT NYNÍ"; 
-                height: 55px; 
-                max-width: 350px; 
-            }
+        // Navigační Menu
+        HorizontalLayout {
+            height: 45px; 
+            spacing: 12px;
+            Button { text: "Aktualizace"; primary: root.settings-tab == 0; clicked => { root.settings-tab = 0; } }
+            Button { text: "Partneři"; primary: root.settings-tab == 1; clicked => { root.settings-tab = 1; } }
+            Button { text: "Systém"; primary: root.settings-tab == 2; clicked => { root.settings-tab = 2; } }
         }
 
-        // --- ZÁLOŽKA: PARTNEŘI (Index 1) ---
-        if (settings-tab == 1) : VerticalLayout {
-            spacing: 20px;
-
-            // Vyhledávání a rychlé náhledy
-            HorizontalLayout {
-                height: 80px;
-                spacing: 20px;
+        Rectangle {
+            // TAB 0: AKTUALIZACE
+            if (root.settings-tab == 0) : VerticalLayout {
+                spacing: 30px;
+                alignment: start; 
+                padding-top: 20px; 
                 
-                FilterCard { 
-                    icon: "👥"; label: "CELKEM V DB"; count: "\{root.pocet-celkem}"; 
-                }
-                FilterCard { 
-                    icon: "⚠️"; label: "BEZ SLOŽKY"; count: "\{root.pocet-chybi}"; count-color: #ff4444; 
-                }
-                
-                // Vyhledávací lišta - OPRAVENO ZAROVNÁNÍ
-                Rectangle {
-                    horizontal-stretch: 1;
-                    background: #252525;
-                    border-radius: 8px;
-                    border-width: 1px;
-                    border-color: #444;
-                    
-                    HorizontalLayout {
-                        padding-left: 15px; 
-                        spacing: 12px;
-                        alignment: center; // Vertikálně vycentruje ikonu i LineEdit
+                HorizontalLayout {
+                    alignment: center;
+                    if (root.excel-path == "") : StatusCard {
+                        title: root.stav-text;
+                        symbol: root.db-status-code == 0 ? "✓" : (root.db-status-code == 1 ? "!" : "✕");
+                        base-color: root.db-status-code == 0 ? #2CC985 : (root.db-status-code == 1 ? #f39c12 : #e74c3c);
+                        description: root.db-status-code == 0 ? 
+                            "Data jsou aktuální. Klikněte pro re-import z nového souboru." : 
+                            "Klikněte zde pro výběr nového Excel souboru s partnery.";
+                        clicked => { root.vybrat-soubor-databaze(); }
+                    }
 
-                        Text { text: "🔍"; color: #666; font-size: 18px; }
-                        
-                        LineEdit { 
-                            placeholder-text: "Hledat partnera podle názvu nebo ID..."; 
-                            horizontal-stretch: 1;
-                            // vertical-alignment odstraněn (LineEdit jej nepodporuje)
-                        }
+                    if (root.excel-path != "") : ImportDialog {
+                        excel-path: root.excel-path;
+                        sheets: root.available-sheets;
+                        selected-sheet <=> root.selected-sheet;
+                        cancel => { root.reset-import-status(); }
+                        start-import => { root.spustit-import(root.excel-path, root.selected-sheet); }
                     }
                 }
             }
 
-            // Záhlaví seznamu
-            Rectangle {
-                height: 40px;
-                background: #2a2a2a;
-                border-radius: 6px;
+            // TAB 1: PARTNEŘI
+            if (root.settings-tab == 1) : VerticalLayout {
+                spacing: 20px;
                 HorizontalLayout {
-                    padding-left: 20px; padding-right: 20px;
-                    Text { text: "STAV"; width: 80px; color: #666; font-size: 11px; font-weight: 800; vertical-alignment: center; }
-                    Text { text: "ID"; width: 100px; color: #666; font-size: 11px; font-weight: 800; vertical-alignment: center; }
-                    Text { text: "NÁZEV FIRMY"; color: #666; font-size: 11px; font-weight: 800; vertical-alignment: center; }
+                    spacing: 20px;
+                    FilterCard { 
+                        label: "CELKEM"; 
+                        count: root.pocet-celkem; 
+                        icon: "👥"; 
+                        active: true; 
+                    }
+                    FilterCard { 
+                        label: "BEZ SLOŽKY"; 
+                        count: root.pocet-chybi; 
+                        icon: "📁"; 
+                        count-color: #e74c3c; 
+                    }
                 }
+                Rectangle { background: #252525; border-radius: 12px; vertical-stretch: 1; }
             }
 
-            // Placeholder pro tabulku
-            Rectangle {
-                background: #1e1e1e;
-                border-radius: 8px;
-                vertical-stretch: 1;
-                Text { text: "Seznam partnerů bude načten z databáze..."; color: #444; horizontal-alignment: center; vertical-alignment: center; }
+            // TAB 2: SYSTÉM
+            if (root.settings-tab == 2) : VerticalLayout {
+                padding: 20px;
+                Text { text: "Verze aplikace: 0.1.1"; color: #888; }
             }
         }
+    }
 
-        // --- ZÁLOŽKA: OBECNÉ (Index 2) ---
-        if (settings-tab == 2) : VerticalLayout {
-            spacing: 25px;
-            padding: 10px;
+    // MODERNÍ PROGRESS OVERLAY využívající vaši ProgressBar komponentu
+    if (root.show-progress) : Rectangle {
+        background: #000000cc; // Poloprůhledné černé pozadí
+        
+        TouchArea { } // Pohlcuje kliky, aby nebylo možné ovládat aplikaci během nahrávání
 
-            Text { text: "Systémová nastavení"; color: white; font-size: 18px; font-weight: 700; }
-            
-            CheckBox { text: "Povolit automatickou aktualizaci při spuštění"; checked: true; }
-            CheckBox { text: "Ukládat historii importů do logu"; checked: true; }
-
-            Rectangle { height: 1px; background: #333; }
-
-            Text { text: "Konfigurace cest (Server / Archiv)"; color: #888; font-size: 13px; }
-            
-            HorizontalLayout {
-                spacing: 10px;
-                alignment: center;
-                LineEdit { placeholder-text: "Zadejte cestu k archivu..."; horizontal-stretch: 1; }
-                Button { text: "Změnit"; width: 100px; }
-            }
-
-            Rectangle { vertical-stretch: 1; }
+        // Centrování vašeho ProgressBaru
+        ProgressBar {
+            progress: root.progress-value;
+            status_text: root.progress-label;
         }
     }
 }

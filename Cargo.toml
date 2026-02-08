@@ -1,10 +1,15 @@
 [package]
 name = "mrb_obchodnik"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 
 [dependencies]
 slint = "1.8"
+rfd = "0.14"          # Dialogy pro výběr souboru
+calamine = "0.24"      # Čtení Excelu
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"     # Práce s JSON
+chrono = "0.4"         # Pro datum a čas (volitelné)
 
 [build-dependencies]
 slint-build = "1.8"
