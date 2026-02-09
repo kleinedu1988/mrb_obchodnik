@@ -5,55 +5,46 @@ import { SettingsView } from "views/settings.slint";
 
 export component AppWindow inherits Window {
     title: "MRB Obchodník";
-    
     preferred-width: 1300px;
     preferred-height: 850px;
-    min-width: 1100px;
-    min-height: 750px;
     background: #1A1A1A;
 
-    // --- GLOBÁLNÍ VLASTNOSTI (Viditelné pro Rust) ---
-    in property <string> verze_aplikace: "0.1.1";
+    in property <string> verze_aplikace: "0.1.2";
     in-out property <int> vybrany_index: 0;
     
-    // Dynamické barvy a titulky podle režimu
     property <int> rezim_prace: 0;
     property <color> barva_stranky: rezim_prace == 1 ? #f39c12 : (rezim_prace == 2 ? #27ae60 : #4aa3df);
     property <string> titulek_stranky: rezim_prace == 1 ? "POPTÁVKA" : (rezim_prace == 2 ? "OBJEDNÁVKA" : "IMPORT");
 
-    // --- DATOVÉ VLASTNOSTI (Propojeno s db_sync.rs) ---
     in property <int> db_status_code: 1;
     in property <string> stav_text: "NAČÍTÁNÍ...";
     in property <string> posledni_sync: "Neznámý";
     in property <int> pocet_celkem: 0;
     in property <int> pocet_chybi: 0;
 
-    // --- PROGRESS BAR VLASTNOSTI (Nezbytné pro Rust metody ui.set_...) ---
+    in property <string> path_tech_docs: "";
+    in property <string> path_production: "";
+    in property <string> path_offers: "";
+
     in property <bool> show_progress: false;
     in property <float> progress_value: 0.0;
     in property <string> progress_label: "";
 
-    // Callbacky pro komunikaci s Rustem
     callback vybrat-soubor-databaze();
+    callback change-tech-docs();
+    callback change-production();
+    callback change-offers();
 
     HorizontalLayout {
-        padding: 0;
-        spacing: 0;
-
-        // Postranní menu
         Sidebar {
             aktivni-stranka <=> root.vybrany_index;
             akcent-barva: root.barva_stranky;
             verze-aplikace: root.verze_aplikace;
         }
 
-        // Hlavní obsahová část
         Rectangle {
             horizontal-stretch: 1;
-            // Pozor: Padding zde může vyvolat varování u Rectangle, 
-            // pokud jej chcete, měl by být uvnitř Layoutu níže.
 
-            // Přepínání pohledů podle indexu v Sidebaru
             if (root.vybrany_index == 0) : HomeView {
                 nabidka-vybrana => { root.rezim_prace = 1; root.vybrany_index = 1; }
                 objednavka-vybrana => { root.rezim_prace = 2; root.vybrany_index = 1; }
@@ -64,22 +55,25 @@ export component AppWindow inherits Window {
                 nazev-rezimu: root.titulek_stranky;
             }
 
-            // POHLED NASTAVENÍ (Zde propojujeme "dráty")
             if (root.vybrany_index == 2) : SettingsView {
-                // Data
                 db-status-code: root.db_status_code;
                 stav-text: root.stav_text;
                 posledni-sync: root.posledni_sync;
                 pocet-celkem: root.pocet_celkem;
                 pocet-chybi: root.pocet_chybi;
 
-                // Progress Bar (Propojení s AppWindow)
+                path-tech-docs: root.path_tech_docs;
+                path-production: root.path_production;
+                path-offers: root.path_offers;
+
                 show-progress: root.show_progress;
                 progress-value: root.progress_value;
                 progress-label: root.progress_label;
 
-                // Callbacky
                 vybrat-soubor-databaze => { root.vybrat-soubor-databaze(); }
+                change-tech-docs => { root.change-tech-docs(); }
+                change-production => { root.change-production(); }
+                change-offers => { root.change-offers(); }
             }
         }
     }

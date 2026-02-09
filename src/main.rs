@@ -1,14 +1,28 @@
 mod db_sync;
+mod config;
 
 use std::thread;
 use slint::ComponentHandle;
+use config::AppConfig;
+use std::sync::{Arc, Mutex};
 
 slint::include_modules!();
 
 fn main() -> Result<(), slint::PlatformError> {
     let ui = AppWindow::new()?;
     
-    // --- 1. INICIALIZACE PŘI STARTU ---
+    // Načtení konfigurace (cest) z config.json
+    let config = Arc::new(Mutex::new(AppConfig::load()));
+
+    // Inicializace cest v UI při startu aplikace
+    {
+        let cfg = config.lock().unwrap();
+        ui.set_path_tech_docs(cfg.path_tech_docs.clone().into());
+        ui.set_path_production(cfg.path_production.clone().into());
+        ui.set_path_offers(cfg.path_offers.clone().into());
+    }
+
+    // Inicializace stavu databáze (původní kód)
     let (msg, status, sync_time) = db_sync::get_current_status();
     ui.set_stav_text(msg.into());
     ui.set_db_status_code(status);
@@ -16,57 +30,91 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let ui_handle = ui.as_weak();
 
-    // --- 2. LOGIKA TLAČÍTKA (AKTUALIZACE) ---
+    // --- LOGIKA PRO ZMĚNU CEST (Záložka Systém) ---
+    
+    // 1. Cesta k technické dokumentaci
+    let cfg_c = config.clone();
+    let h1 = ui_handle.clone();
+    ui.on_change_tech_docs(move || {
+        if let Some(path) = rfd::FileDialog::new().set_title("Vyberte složku pro dokumentaci").pick_folder() {
+            let p = path.display().to_string();
+            let ui = h1.unwrap();
+            ui.set_path_tech_docs(p.clone().into());
+            
+            let mut cfg = cfg_c.lock().unwrap();
+            cfg.path_tech_docs = p;
+            cfg.save();
+        }
+    });
+
+    // 2. Cesta do výroby
+    let cfg_c = config.clone();
+    let h2 = ui_handle.clone();
+    ui.on_change_production(move || {
+        if let Some(path) = rfd::FileDialog::new().set_title("Vyberte složku pro výrobu").pick_folder() {
+            let p = path.display().to_string();
+            let ui = h2.unwrap();
+            ui.set_path_production(p.clone().into());
+            
+            let mut cfg = cfg_c.lock().unwrap();
+            cfg.path_production = p;
+            cfg.save();
+        }
+    });
+
+    // 3. Cesta k nabídkám
+    let cfg_c = config.clone();
+    let h3 = ui_handle.clone();
+    ui.on_change_offers(move || {
+        if let Some(path) = rfd::FileDialog::new().set_title("Vyberte složku pro nabídky").pick_folder() {
+            let p = path.display().to_string();
+            let ui = h3.unwrap();
+            ui.set_path_offers(p.clone().into());
+            
+            let mut cfg = cfg_c.lock().unwrap();
+            cfg.path_offers = p;
+            cfg.save();
+        }
+    });
+
+    // --- LOGIKA IMPORTU DATABÁZE (Progress Bar) ---
+    let h_import = ui_handle.clone();
     ui.on_vybrat_soubor_databaze(move || {
-        let ui = ui_handle.unwrap();
-        
-        // Spustíme dialog pro výběr souboru (v hlavním vlákně, rfd to tak vyžaduje)
+        let ui = h_import.unwrap();
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("Excel", &["xlsx", "xlsm"])
-            .set_title("Vyberte soubor: Obchodní partneři.xlsx")
             .pick_file() 
         {
-            // Příprava pro vlákno
             let thread_ui_handle = ui.as_weak();
             let path_clone = path.clone();
 
-            // Aktivujeme Progress Bar v UI před startem vlákna
             ui.set_show_progress(true);
             ui.set_progress_value(0.0);
             ui.set_progress_label("Inicializace importu...".into());
 
-            // --- VÝKONNÉ VLÁKNO ---
-thread::spawn(move || {
-    // Definujeme callback pro aktualizaci progressu
-    let progress_callback = {
-        let ui_inner = thread_ui_handle.clone();
-        move |val: f32, label: &str| {
-            let label_string = label.to_string();
-            // KLÍČOVÁ OPRAVA: Vytvoříme kopii pro invoke_from_event_loop
-            let ui_for_loop = ui_inner.clone(); 
-            
-            let _ = slint::invoke_from_event_loop(move || {
-                if let Some(ui) = ui_for_loop.upgrade() {
-                    ui.set_progress_value(val);
-                    ui.set_progress_label(label_string.into());
-                }
-            });
-        }
-    };
+            thread::spawn(move || {
+                let progress_callback = {
+                    let ui_inner = thread_ui_handle.clone();
+                    move |val: f32, label: &str| {
+                        let label_string = label.to_string();
+                        let ui_for_loop = ui_inner.clone(); 
+                        let _ = slint::invoke_from_event_loop(move || {
+                            if let Some(ui) = ui_for_loop.upgrade() {
+                                ui.set_progress_value(val);
+                                ui.set_progress_label(label_string.into());
+                            }
+                        });
+                    }
+                };
 
-    // Nyní už progress_callback implementuje FnMut a kód půjde zkompilovat
-    let vysledek = db_sync::handle_database_update_with_progress(path_clone, progress_callback);
+                let vysledek = db_sync::handle_database_update_with_progress(path_clone, progress_callback);
 
-                // Po skončení vlákna aktualizujeme finální stav v UI
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(ui) = thread_ui_handle.upgrade() {
-                        ui.set_show_progress(false); // Schováme progress bar
-                        
+                        ui.set_show_progress(false);
                         if let Some((msg, status)) = vysledek {
                             ui.set_stav_text(msg.into());
                             ui.set_db_status_code(status);
-                            
-                            // Načteme nový čas synchronizace
                             let (_, _, new_sync) = db_sync::get_current_status();
                             ui.set_posledni_sync(new_sync.into());
                         }

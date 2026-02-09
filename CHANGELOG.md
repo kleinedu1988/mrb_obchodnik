@@ -1,3 +1,18 @@
+## [0.1.3] - 2024-05-24
+### Přidáno
+- **Persistence nastavení**: Nový modul `config.rs` zajišťuje ukládání systémových cest do souboru `config.json`.
+- **Konfigurace systémových cest**: V záložce Systém přibylo rozhraní pro nastavení cest k technické dokumentaci, výrobě a nabídkám.
+- **PathSelectorRow**: Nová UI komponenta pro konzistentní výběr složek v nastavení.
+
+### Změněno
+- **Layout engine**: Do hlavních kontejnerů byly přidány "pružiny" (vertical-stretch), které lépe drží prvky na svých místech při změně velikosti okna.
+- **Refaktorizace**: Smazány nepotřebné a redundantní soubory v projektové struktuře.
+- **UI**: Aktualizováno zobrazení verze v globálních vlastnostech `main.slint`.
+
+### Opraveno
+- **Sidebar UX**: Opraveno zarovnání textu verze v levém panelu, aby nelícoval s okrajem.
+- **Zpracování cest**: Ošetření stavů, kdy cesta není vybrána (zobrazení placeholderu).
+
 ## [0.1.2] - 2024-05-23
 ### Přidáno
 - **Moderní ProgressBar**: Implementace komponentu s modrým akcentem (`#4aa3df`).

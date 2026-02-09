@@ -1,6 +1,48 @@
 import { Button, LineEdit, CheckBox, VerticalBox, HorizontalBox, ComboBox } from "std-widgets.slint";
 
-// --- KOMPONENTY ---
+// --- POMOCNÉ KOMPONENTY ---
+
+// Nová komponenta pro řádek s výběrem cesty
+component PathSelectorRow inherits HorizontalLayout {
+    in property <string> label;
+    in property <string> path;
+    callback change-clicked();
+
+    spacing: 15px;
+    height: 35px;
+
+    Text {
+        text: root.label;
+        color: #aaa;
+        vertical-alignment: center;
+        width: 180px;
+        font-size: 14px;
+    }
+
+    Rectangle {
+        background: #111;
+        border-radius: 4px;
+        border-width: 1px;
+        border-color: #333;
+        horizontal-stretch: 1;
+        
+        Text {
+            text: root.path == "" ? "Cesta nebyla nastavena..." : root.path;
+            color: root.path == "" ? #555 : #4aa3df;
+            vertical-alignment: center;
+            x: 10px;
+            width: parent.width - 20px;
+            overflow: elide;
+            font-family: "monospace";
+        }
+    }
+
+    Button {
+        text: "Změnit";
+        width: 80px;
+        clicked => { root.change-clicked(); }
+    }
+}
 
 // Definice ProgressBaru podle vašeho návrhu
 export component ProgressBar inherits Rectangle {
@@ -239,6 +281,11 @@ export component SettingsView inherits Rectangle {
     in property <int> pocet-celkem: 0;
     in property <int> pocet-chybi: 0;
 
+    // API pro cesty (propojení s Rustem)
+    in property <string> path-tech-docs: "";
+    in property <string> path-production: "";
+    in property <string> path-offers: "";
+
     // Progress a Import flow
     in property <string> excel-path: "";
     in property <[string]> available-sheets: ["List1", "Export"];
@@ -252,6 +299,11 @@ export component SettingsView inherits Rectangle {
     callback vybrat-soubor-databaze();
     callback spustit-import(string, string);
     callback reset-import-status();
+    
+    // Callbacks pro změnu cest
+    callback change-tech-docs();
+    callback change-production();
+    callback change-offers();
 
     property <int> settings-tab: 0;
 
@@ -320,21 +372,52 @@ export component SettingsView inherits Rectangle {
                 Rectangle { background: #252525; border-radius: 12px; vertical-stretch: 1; }
             }
 
-            // TAB 2: SYSTÉM
+            // TAB 2: SYSTÉM (Aktualizováno)
             if (root.settings-tab == 2) : VerticalLayout {
                 padding: 20px;
-                Text { text: "Verze aplikace: 0.1.1"; color: #888; }
+                spacing: 20px;
+                alignment: start;
+
+                Text {
+                    text: "Konfigurace systémových složek";
+                    color: white;
+                    font-size: 18px;
+                    font-weight: 700;
+                }
+
+                PathSelectorRow {
+                    label: "Technická dokumentace:";
+                    path: root.path-tech-docs;
+                    change-clicked => { root.change-tech-docs(); }
+                }
+
+                PathSelectorRow {
+                    label: "Cesta do výroby:";
+                    path: root.path-production;
+                    change-clicked => { root.change-production(); }
+                }
+
+                PathSelectorRow {
+                    label: "Cesta k nabídkám:";
+                    path: root.path-offers;
+                    change-clicked => { root.change-offers(); }
+                }
+
+                Rectangle { vertical-stretch: 1; }
+
+                HorizontalLayout {
+                    Text { text: "Verze aplikace: 0.1.2"; color: #444; font-size: 12px; }
+                }
             }
         }
     }
 
-    // MODERNÍ PROGRESS OVERLAY využívající vaši ProgressBar komponentu
+    // MODERNÍ PROGRESS OVERLAY
     if (root.show-progress) : Rectangle {
-        background: #000000cc; // Poloprůhledné černé pozadí
+        background: #000000cc;
         
-        TouchArea { } // Pohlcuje kliky, aby nebylo možné ovládat aplikaci během nahrávání
+        TouchArea { } 
 
-        // Centrování vašeho ProgressBaru
         ProgressBar {
             progress: root.progress-value;
             status_text: root.progress-label;
